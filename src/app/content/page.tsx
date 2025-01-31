@@ -1,12 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  fetchAllCharacters,
-  fetchCharacterInfo,
-  fetchFilmInfo,
-} from "@swapi-app/utils/loadData";
-import Card from "@swapi-app/components/Card/Card";
+import { useState } from "react";
+import { fetchAllCharacters, fetchAllFilms } from "@swapi-app/utils/loadData";
+import Card from "@swapi-app/components/card/card";
+import Paginator from "@swapi-app/components/paginator/paginator";
 
 interface Results {
   description: string;
@@ -15,28 +12,52 @@ interface Results {
   type: string;
 }
 
+interface PaginatorProps {
+  totalPages: number;
+  prevUrl: string | null;
+  nextUrl: string | null;
+  currentPage: number;
+}
+
+const DEFAULT_PAGINATOR_PROPS = {
+  totalPages: 0,
+  prevUrl: "",
+  nextUrl: "",
+  currentPage: 1,
+};
+
 export default function Content() {
   const [resultsData, setResultsData] = useState<Results[]>([]);
+  const [paginatorData, setPaginatorData] = useState<PaginatorProps>(
+    DEFAULT_PAGINATOR_PROPS
+  );
 
-  useEffect(() => {
-    // fetchAllCharacters();
-  }, []);
+  const handleOnClick = async (resourceType: string) => {
+    if (resourceType === "characters") {
+      const { totalPages, prevUrl, nextUrl, currentPage, queryResults } =
+        await fetchAllCharacters();
 
-  const handleSearch = async (query: string) => {
-    console.log("Searching for:", query);
+      setResultsData(queryResults);
+      setPaginatorData({ totalPages, prevUrl, nextUrl, currentPage });
+    }
 
-    const [characterInfo, filmInfo] = await Promise.all([
-      fetchCharacterInfo(query),
-      fetchFilmInfo(query),
-    ]);
-
-    setResultsData([...characterInfo, ...filmInfo]);
+    if (resourceType === "films") {
+      const allFilms: Results[] = await fetchAllFilms();
+      setResultsData(allFilms);
+      setPaginatorData(DEFAULT_PAGINATOR_PROPS);
+    }
   };
 
-  console.log("resultsData: ", resultsData);
+  const handleOnPagination = async (pageUrl: string | null) => {
+    const { totalPages, prevUrl, nextUrl, currentPage, queryResults } =
+      await fetchAllCharacters(pageUrl);
+
+    setResultsData(queryResults);
+    setPaginatorData({ totalPages, prevUrl, nextUrl, currentPage });
+  };
 
   return (
-    <div>
+    <div className="flex flex-col items-center text-center">
       <h1 className="text-5xl font-bold mb-20">Content Page</h1>
 
       <ol className="list-inside list-decimal text-start font-[family-name:var(--font-geist-mono)] mb-6">
@@ -51,19 +72,33 @@ export default function Content() {
           </code>
           .
         </li>
-        <li>Click on the card to get more details.</li>
+        <li>Enjoy!</li>
       </ol>
 
-      <div className="flex gap-4 items-center flex-col sm:flex-row">
-        <button className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44">
+      <div className="flex gap-4 items-center flex-col sm:flex-row mb-10">
+        <button
+          className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
+          onClick={() => handleOnClick("characters")}
+        >
           Load Characters
         </button>
-        <button className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44">
+        <button
+          className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
+          onClick={() => handleOnClick("films")}
+        >
           Load Films
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+      <div
+        className={`grid grid-cols-1 sm:grid-cols-${
+          resultsData.length < 2 ? resultsData.length : "2"
+        } md:grid-cols-${
+          resultsData.length < 3 ? resultsData.length : "3"
+        } lg:grid-cols-${
+          resultsData.length < 4 ? resultsData.length : "4"
+        } gap-5`}
+      >
         {resultsData.map((result, idx: number) => {
           const { description, title, name, type } = result;
           return (
@@ -76,54 +111,17 @@ export default function Content() {
           );
         })}
       </div>
-
-      {/* <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+      {!!paginatorData.totalPages && (
+        <div>
+          <Paginator
+            currentPage={paginatorData.currentPage}
+            nextUrl={paginatorData.nextUrl}
+            prevUrl={paginatorData.prevUrl}
+            totalPages={paginatorData.totalPages}
+            handlePagination={handleOnPagination}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer> */}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,14 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
+import { useState } from "react";
 import SearchBox from "@swapi-app/components/searchBox/searchBox";
-import {
-  fetchAllCharacters,
-  fetchCharacterInfo,
-  fetchFilmInfo,
-} from "@swapi-app/utils/loadData";
-import Card from "@swapi-app/components/Card/Card";
+import { fetchCharacterInfo, fetchFilmInfo } from "@swapi-app/utils/loadData";
+import Card from "@swapi-app/components/card/card";
 
 interface Results {
   description: string;
@@ -19,28 +14,36 @@ interface Results {
 
 export default function Home() {
   const [resultsData, setResultsData] = useState<Results[]>([]);
-
-  useEffect(() => {
-    // fetchAllCharacters();
-  }, []);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showErrorMessage, setShowErrorMessage] = useState(false);
 
   const handleSearch = async (query: string) => {
-    console.log("Searching for:", query);
+    if (!query.trim()) return;
 
-    const [characterInfo, filmInfo] = await Promise.all([
-      fetchCharacterInfo(query),
-      fetchFilmInfo(query),
-    ]);
+    setIsLoading(true);
+    setShowErrorMessage(false);
 
-    setResultsData([...characterInfo, ...filmInfo]);
+    try {
+      const [characterInfo, filmInfo] = await Promise.all([
+        fetchCharacterInfo(query),
+        fetchFilmInfo(query),
+      ]);
+      const mergedResultsData = [...characterInfo, ...filmInfo];
+
+      setResultsData(mergedResultsData);
+      setShowErrorMessage(mergedResultsData.length === 0);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setShowErrorMessage(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
-
-  console.log("resultsData: ", resultsData);
 
   return (
     <div className="flex flex-col items-center text-center">
       <h1 className="text-5xl font-bold mb-20">Star Wars Searchbox</h1>
-      <ol className="list-inside list-decimal text-start font-[family-name:var(--font-geist-mono)] mb-6">
+      <ol className="list-inside list-decimal text-start font-mono mb-6">
         <li className="mb-2">
           Search by{" "}
           <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
@@ -52,32 +55,36 @@ export default function Home() {
           </code>
           .
         </li>
-        <li>Click on the card to get more details.</li>
+        <li>
+          Looking for the full list? Navigate to the{" "}
+          <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
+            Content
+          </code>{" "}
+          page in the menu!
+        </li>
       </ol>
 
       <div className="mb-10">
         <SearchBox onSearch={handleSearch} />
       </div>
 
-      {resultsData && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-          {resultsData.map((result, idx: number) => {
-            const { description, title, name, type } = result;
-            return (
-              <Card
-                description={description}
-                title={title || name || "No Name"}
-                imageUrl={`/${type}.jpg`}
-                key={idx}
-              />
-            );
-          })}
-        </div>
-      )}
-      {!resultsData.length && (
+      {isLoading ? (
+        <h2 className="text-2xl font-semibold">Loading...</h2>
+      ) : showErrorMessage ? (
         <h2 className="text-2xl font-semibold">
           Oops... there is no info for that search
         </h2>
+      ) : (
+        <div className="grid grid-cols-1 gap-5">
+          {resultsData.map(({ description, title, name, type }, idx) => (
+            <Card
+              key={`${type}-${idx}`}
+              description={description}
+              title={title || name || "No Name"}
+              imageUrl={`/${type}.jpg`}
+            />
+          ))}
+        </div>
       )}
     </div>
   );

@@ -22,12 +22,6 @@ export default function Navbar() {
           <Link href="/content" className="text-white hover:text-gray-500">
             Content
           </Link>
-          <Link href="#" className="text-white hover:text-gray-500">
-            Services
-          </Link>
-          <Link href="#" className="text-white hover:text-gray-500">
-            Contact
-          </Link>
         </div>
 
         {/* Mobile Menu Button */}
@@ -49,22 +43,10 @@ export default function Navbar() {
             Home
           </Link>
           <Link
-            href="#"
+            href="/"
             className="block px-4 py-2 text-gray-600 hover:bg-gray-100"
           >
-            About
-          </Link>
-          <Link
-            href="#"
-            className="block px-4 py-2 text-gray-600 hover:bg-gray-100"
-          >
-            Services
-          </Link>
-          <Link
-            href="#"
-            className="block px-4 py-2 text-gray-600 hover:bg-gray-100"
-          >
-            Contact
+            Content
           </Link>
         </div>
       )}
